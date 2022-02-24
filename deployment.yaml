@@ -1,0 +1,60 @@
+apiVersion: v1 # Kubernetes API version
+kind: Service # Kubernetes resource kind we are creating
+metadata: # Metadata of the resource kind we are creating
+  name: spring-docker-kuber
+   
+spec:
+  selector:
+    app: spring-docker-kuber
+    release: monitoring
+  ports:
+    - protocol: "TCP"
+      name: api
+      port: 8081 # The port that the service is running on in the cluster
+      targetPort: 8081 # The port exposed by the service
+  type: LoadBalancer # type of the service. LoadBalancer indicates that our service will be external.
+---
+apiVersion: apps/v1
+kind: Deployment # Kubernetes resource kind we are creating
+metadata:
+  name: spring-docker-kuber
+
+spec:
+  selector:
+    matchLabels:
+      app: spring-docker-kuber
+     
+  replicas: 2 # Number of replicas that will be created for this deployment
+  template:
+    metadata:
+      labels:
+        app: spring-docker-kuber
+        release: monitoring
+    spec:
+      containers:
+        - name: spring-docker-kuber
+          image: spring-docker-kuberv5:latest # Image that will be used to containers in the cluster
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: spring-docker-kuber
+  labels:
+    app: spring-docker-kuber
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: spring-docker-kuber
+      release: monitoring
+  endpoints:
+  - port: api
+    path: "/actuator/prometheus"
+    scheme: http
+    interval: 10s
+    honorLabels: false
+---
